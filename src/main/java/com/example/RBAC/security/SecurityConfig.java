@@ -1,5 +1,6 @@
 package com.example.RBAC.security;
 
+import com.example.RBAC.service.TokenService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -23,15 +24,17 @@ public class SecurityConfig {
 
     private final UserDetailsService userDetailsService;
     private final JwtUtil jwtUtil;
+    private final TokenService tokenService;
 
-    public SecurityConfig(UserDetailsService userDetailsService, JwtUtil jwtUtil) {
+    public SecurityConfig(UserDetailsService userDetailsService, JwtUtil jwtUtil, TokenService tokenService) {
+        this.tokenService = tokenService;
         this.userDetailsService = userDetailsService;
         this.jwtUtil = jwtUtil;
     }
     @Bean
     public JwtAuthenticationFilter jwtAuthenticationFilter() {
         System.out.println("Creating JWT Authentication Filter");
-        return new JwtAuthenticationFilter(jwtUtil, userDetailsService);
+        return new JwtAuthenticationFilter(jwtUtil, userDetailsService,tokenService);
     }
 
     @Bean

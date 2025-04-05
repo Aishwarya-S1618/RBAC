@@ -7,7 +7,7 @@ import com.example.RBAC.repository.UserRepository;
 import com.example.RBAC.security.CustomUserDetails;
 import com.example.RBAC.security.JwtUtil;
 import com.example.RBAC.service.AuthService;
-
+import com.example.RBAC.service.TokenService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -19,8 +19,10 @@ public class AuthController {
     private final AuthService authService;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final TokenService tokenService; 
 
-    public AuthController(AuthService authService, JwtUtil jwtUtil, UserRepository userRepository) {
+    public AuthController(AuthService authService, JwtUtil jwtUtil, UserRepository userRepository, TokenService tokenService) {
+        this.tokenService = tokenService;
         this.authService = authService;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
@@ -68,6 +70,18 @@ public class AuthController {
         String newAccessToken = jwtUtil.generateToken(userDetails);
 
         return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.badRequest().body("Missing or invalid Authorization header");
+        }
+
+        String token = authHeader.substring(7);
+        tokenService.revokeToken(token); // Blacklist or invalidate refresh token
+
+        return ResponseEntity.ok("Logout successful");
     }
 
 }

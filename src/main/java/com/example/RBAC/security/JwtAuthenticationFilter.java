@@ -1,5 +1,6 @@
 package com.example.RBAC.security;
 
+import com.example.RBAC.service.TokenService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -23,8 +24,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
+    private final TokenService tokenService;
 
-    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService, TokenService tokenService) {
+        this.tokenService = tokenService;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
     }
@@ -46,6 +49,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             username = jwtUtil.extractUsername(token);
         }
         System.out.println("JWT Filter: token = " + token);
+        // 🔒 Token revocation check (insert here)
+        if (token != null && tokenService.isTokenRevoked(token)) {
+            System.out.println("JWT Filter: Token is revoked. Skipping authentication.");
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         // 2. Validate token and set authentication
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
