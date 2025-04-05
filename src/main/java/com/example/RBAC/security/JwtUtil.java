@@ -3,6 +3,7 @@ package com.example.RBAC.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
@@ -10,14 +11,20 @@ import java.security.Key;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Component
 public class JwtUtil {
 
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-    private final long EXPIRATION_TIME = 86400000; // 24 hours
+    private final Key signingKey;
+    private final long jwtExpiration;
 
+    public JwtUtil(@Value("${jwt.secret}") String secret,
+                   @Value("${jwt.expiration}") long jwtExpiration) {
+        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes());
+        this.jwtExpiration = jwtExpiration;
+    }
     public String generateToken(UserDetails userDetails) {
         String username = userDetails.getUsername();
         Collection<? extends GrantedAuthority> authorities = userDetails.getAuthorities();
@@ -26,55 +33,49 @@ public class JwtUtil {
             .map(GrantedAuthority::getAuthority)
             .collect(Collectors.toList());
 
-        System.out.println("🔹 Generating JWT for User: " + username);
-        System.out.println("🔹 Roles assigned in JWT: " + roles);
-        // Create JWT token with roles
+        System.out.println(" Generating JWT for User: " + username);
+        System.out.println(" Roles assigned in JWT: " + roles);
+        System.out.println(" JWT Expiration Time: " + jwtExpiration + " milliseconds");
         return Jwts.builder()
                 .setSubject(username)
                 .claim("roles", roles)
                 .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key)
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
+                .signWith(signingKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public String extractUsername(String token) {
+    private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(key)
+                .setSigningKey(signingKey)
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+                .getBody();
+    }
+
+    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = extractAllClaims(token);
+        return claimsResolver.apply(claims);
+    }
+
+    public String extractUsername(String token) {
+        return extractClaim(token, Claims::getSubject);
     }
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(signingKey).build().parseClaimsJws(token);
             return true;
         } catch (JwtException e) {
+            System.err.println("Invalid JWT: " + e.getMessage());
             return false;
         }
     }
-    
+    @SuppressWarnings("unchecked")
     public List<String> extractRoles(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
-    
-        List<String> roles = claims.get("roles", List.class);
-        System.out.println("🔹 Extracted Roles from JWT: " + roles);
-        return roles;
+
+        Claims claims = extractAllClaims(token);
+        return claims.get("roles", List.class);
     }
-    // // Add new method to generate refresh token (longer expiry)
-    // public String generateRefreshToken(UserDetails userDetails) {
-    //     return Jwts.builder()
-    //             .setSubject(userDetails.getUsername())
-    //             .setIssuedAt(new Date())
-    //             .setExpiration(new Date(System.currentTimeMillis() + 7 * 86400000)) // 7 days
-    //             .signWith(key)
-    //             .compact();
-    // }
 
 }

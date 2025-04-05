@@ -47,11 +47,11 @@ public class AuthController {
         return ResponseEntity.ok(Map.of(
             "AccessToken", tokens.get("accessToken"),
             "RefreshToken", tokens.get("refreshToken")
-            
+
         ));
 
     }
-    
+
 
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> request) {
@@ -69,4 +69,5 @@ public class AuthController {
 
         return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
     }
+
 }

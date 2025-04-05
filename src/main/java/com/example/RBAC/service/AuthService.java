@@ -1,5 +1,4 @@
 package com.example.RBAC.service;
-
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.Map;
@@ -14,8 +13,6 @@ import com.example.RBAC.repository.RefreshTokenRepository;
 import com.example.RBAC.repository.RoleRepository;
 import com.example.RBAC.security.CustomUserDetails;
 import com.example.RBAC.security.JwtUtil;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -98,9 +95,5 @@ public class AuthService {
         return Map.of("accessToken", newAccessToken);
     }
 
-    public void logout(String refreshToken) {
-        refreshTokenRepository.findByToken(refreshToken)
-            .ifPresent(refreshTokenRepository::delete);
-    }
-   
+
 }
