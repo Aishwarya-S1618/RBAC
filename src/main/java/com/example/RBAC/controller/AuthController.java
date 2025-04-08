@@ -7,29 +7,22 @@ import com.example.RBAC.repository.UserRepository;
 import com.example.RBAC.security.CustomUserDetails;
 import com.example.RBAC.security.JwtUtil;
 import com.example.RBAC.service.AuthService;
-import com.example.RBAC.service.TokenService;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/auth")
 public class AuthController {
 
     private final AuthService authService;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
-    private final TokenService tokenService; 
-
-    public AuthController(AuthService authService, JwtUtil jwtUtil, UserRepository userRepository, TokenService tokenService) {
-        this.tokenService = tokenService;
-        this.authService = authService;
-        this.jwtUtil = jwtUtil;
-        this.userRepository = userRepository;
-    }
 
     @GetMapping("/secure-endpoint")
     public ResponseEntity<Map<String, String>> secureEndpoint() {
@@ -56,7 +49,6 @@ public class AuthController {
         ));
 
     }
-
 
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> request) {

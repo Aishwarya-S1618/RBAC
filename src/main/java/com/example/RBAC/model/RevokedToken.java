@@ -32,6 +32,9 @@ public class RevokedToken {
     @Column(nullable = false, unique = true, length = 512)
     private String token;
 
+    @Column(nullable = false)
+    private Long userId;
+
     /**
      * Timestamp indicating when the token was revoked.
      * Stored as UTC.

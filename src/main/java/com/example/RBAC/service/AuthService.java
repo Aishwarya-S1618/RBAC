@@ -74,7 +74,7 @@ public class AuthService {
         String accessToken = jwtUtil.generateToken(userDetails);
         // Check if token already revoked (from earlier session, etc.)
         if (tokenService.isTokenRevoked(accessToken)) {
-            tokenService.removeToken(accessToken); // Remove it cleanly
+            tokenService.removeToken(accessToken);
         }
         String refreshToken = createRefreshToken(user);
         return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
