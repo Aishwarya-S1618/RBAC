@@ -13,11 +13,15 @@ import com.example.RBAC.repository.RefreshTokenRepository;
 import com.example.RBAC.repository.RoleRepository;
 import com.example.RBAC.security.CustomUserDetails;
 import com.example.RBAC.security.JwtUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -28,16 +32,18 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final TokenService tokenService;
 
     public AuthService(AuthenticationManager authenticationManager, JwtUtil jwtUtil,
                        UserRepository userRepository, PasswordEncoder passwordEncoder,
-                       RoleRepository roleRepository, RefreshTokenRepository refreshTokenRepository) {
+                       RoleRepository roleRepository, RefreshTokenRepository refreshTokenRepository, TokenService tokenService) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.roleRepository = roleRepository;
         this.refreshTokenRepository = refreshTokenRepository;
+        this.tokenService = tokenService;
     }
 
     public String register(User user) {
@@ -59,17 +65,21 @@ public class AuthService {
         UserDetails userDetails = new CustomUserDetails(user);
         return jwtUtil.generateToken(userDetails);
     }
-
+@Transactional
     public Map<String, String> authenticate(String username, String password) {
         authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new RuntimeException("User not found"));
         UserDetails userDetails = new CustomUserDetails(user);
         String accessToken = jwtUtil.generateToken(userDetails);
+        // Check if token already revoked (from earlier session, etc.)
+        if (tokenService.isTokenRevoked(accessToken)) {
+            tokenService.removeToken(accessToken); // Remove it cleanly
+        }
         String refreshToken = createRefreshToken(user);
         return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
     }
-
+@Transactional
     public String createRefreshToken(User user) {
         refreshTokenRepository.deleteByUser(user); // delete existing token
         RefreshToken refreshToken = new RefreshToken();
@@ -94,6 +104,31 @@ public class AuthService {
         String newAccessToken = jwtUtil.generateToken(userDetails);
         return Map.of("accessToken", newAccessToken);
     }
+@Transactional
+    public void revokeRefreshToken(String refreshToken) {
+        RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+        refreshTokenRepository.delete(token);
+    }
+@Transactional
+public void logout(HttpServletRequest request) {
+    String header = request.getHeader("Authorization");
+    if (header != null && header.startsWith("Bearer ")) {
+        String token = header.substring(7);
+        tokenService.revokeToken(token);
+
+        String username = jwtUtil.extractUsername(token);
+        System.out.println("🧹 Deleting refresh token for user: " + username);
+        userRepository.findByUsername(username).ifPresent(user -> {
+                // Delete refresh token from DB
+            refreshTokenRepository.deleteByUser(user);
+            user.setLastAccessToken(null);
+            userRepository.save(user);
+        });
+    } else {
+        throw new RuntimeException("Missing or invalid Authorization header");
+    }
+}
 
 
 }

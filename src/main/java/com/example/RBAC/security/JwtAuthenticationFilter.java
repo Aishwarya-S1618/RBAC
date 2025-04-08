@@ -51,8 +51,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         System.out.println("JWT Filter: token = " + token);
         // 🔒 Token revocation check (insert here)
         if (token != null && tokenService.isTokenRevoked(token)) {
-            System.out.println("JWT Filter: Token is revoked. Skipping authentication.");
-            filterChain.doFilter(request, response);
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token has been revoked");
             return;
         }
 

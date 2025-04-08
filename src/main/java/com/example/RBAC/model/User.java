@@ -24,6 +24,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(columnDefinition = "TEXT")
+    private String lastAccessToken;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
         name = "user_roles",

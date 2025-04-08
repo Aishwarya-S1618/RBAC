@@ -8,6 +8,9 @@ import com.example.RBAC.security.CustomUserDetails;
 import com.example.RBAC.security.JwtUtil;
 import com.example.RBAC.service.AuthService;
 import com.example.RBAC.service.TokenService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -73,15 +76,9 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(@RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return ResponseEntity.badRequest().body("Missing or invalid Authorization header");
-        }
-
-        String token = authHeader.substring(7);
-        tokenService.revokeToken(token); // Blacklist or invalidate refresh token
-
-        return ResponseEntity.ok("Logout successful");
+    public ResponseEntity<String> logout(HttpServletRequest request) {
+        authService.logout(request);
+        return ResponseEntity.ok("User logged out successfully");
     }
 
 }

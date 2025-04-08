@@ -1,10 +1,5 @@
 package com.example.RBAC.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -15,7 +10,7 @@ import java.time.Instant;
  * This is useful for logout and token blacklisting scenarios.
  */
 @Entity
-@Table(name = "revoked_tokens")
+@Table(name = "revoked_tokens", uniqueConstraints = @UniqueConstraint(columnNames = "token"))
 @Getter
 @Setter
 @NoArgsConstructor
