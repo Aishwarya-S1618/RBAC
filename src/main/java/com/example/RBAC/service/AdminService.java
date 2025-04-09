@@ -1,5 +1,6 @@
 package com.example.RBAC.service;
 
+import com.example.RBAC.model.Permission;
 import com.example.RBAC.model.Role;
 import com.example.RBAC.model.User;
 import com.example.RBAC.dto.RoleDto;
@@ -90,6 +91,21 @@ public class AdminService {
         role.setName(roleName);
         roleRepository.save(role);
     }
+
+    @Transactional
+    public UserDto revokeRolesFromUser(Long userId, Set<String> roleNames) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        Set<Role> updatedRoles = user.getRoles().stream()
+                .filter(role -> !roleNames.contains(role.getName()))
+                .collect(Collectors.toSet());
+
+        user.setRoles(updatedRoles);
+        User updated = userRepository.save(user);
+        return mapToDTO(updated);
+    }
+
     private UserDto mapToDTO(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
@@ -97,5 +113,16 @@ public class AdminService {
         dto.setRoles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()));
         return dto;
     }
+    @Transactional(readOnly = true)
+    public Set<String> getPermissionsForRole(Long roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
+
+        return role.getPermissions()
+                .stream()
+                .map(Permission::getName)
+                .collect(Collectors.toSet());
+    }
+
 }
 
