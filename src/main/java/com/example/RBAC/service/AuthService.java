@@ -65,70 +65,71 @@ public class AuthService {
         UserDetails userDetails = new CustomUserDetails(user);
         return jwtUtil.generateToken(userDetails);
     }
-@Transactional
-    public Map<String, String> authenticate(String username, String password) {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
-        User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new RuntimeException("User not found"));
-        UserDetails userDetails = new CustomUserDetails(user);
-        String accessToken = jwtUtil.generateToken(userDetails);
-        // Check if token already revoked (from earlier session, etc.)
-        if (tokenService.isTokenRevoked(accessToken)) {
-            tokenService.removeToken(accessToken);
+    @Transactional
+        public Map<String, String> authenticate(String username, String password) {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
+            User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+            UserDetails userDetails = new CustomUserDetails(user);
+            String accessToken = jwtUtil.generateToken(userDetails);
+            // Check if token already revoked (from earlier session, etc.)
+            if (tokenService.isTokenRevoked(accessToken)) {
+                tokenService.removeToken(accessToken);
+            }
+            String refreshToken = createRefreshToken(user);
+            return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
         }
-        String refreshToken = createRefreshToken(user);
-        return Map.of("accessToken", accessToken, "refreshToken", refreshToken);
-    }
-@Transactional
-    public String createRefreshToken(User user) {
-        refreshTokenRepository.deleteByUser(user); // delete existing token
-        RefreshToken refreshToken = new RefreshToken();
-        refreshToken.setToken(UUID.randomUUID().toString());
-        refreshToken.setUser(user);
-        refreshToken.setExpiryDate(Instant.now().plusSeconds(604800)); // 7 days
-        refreshTokenRepository.save(refreshToken);
-        return refreshToken.getToken();
-    }
-
-    public Map<String, String> refreshAccessToken(String refreshToken) {
-        RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
-
-        if (token.getExpiryDate().isBefore(Instant.now())) {
-            refreshTokenRepository.deleteByToken(refreshToken);
-            throw new RuntimeException("Refresh token expired");
+    @Transactional
+        public String createRefreshToken(User user) {
+            refreshTokenRepository.deleteByUser(user); // delete existing token
+            RefreshToken refreshToken = new RefreshToken();
+            refreshToken.setToken(UUID.randomUUID().toString());
+            refreshToken.setUser(user);
+            refreshToken.setExpiryDate(Instant.now().plusSeconds(604800)); // 7 days
+            refreshTokenRepository.save(refreshToken);
+            return refreshToken.getToken();
         }
 
-        User user = token.getUser();
-        UserDetails userDetails = new CustomUserDetails(user);
-        String newAccessToken = jwtUtil.generateToken(userDetails);
-        return Map.of("accessToken", newAccessToken);
-    }
-@Transactional
-    public void revokeRefreshToken(String refreshToken) {
-        RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
-                .orElseThrow(() -> new RuntimeException("Refresh token not found"));
-        refreshTokenRepository.delete(token);
-    }
-@Transactional
-public void logout(HttpServletRequest request) {
-    String header = request.getHeader("Authorization");
-    if (header != null && header.startsWith("Bearer ")) {
-        String token = header.substring(7);
-        tokenService.revokeToken(token);
+        public Map<String, String> refreshAccessToken(String refreshToken) {
+            RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
+                    .orElseThrow(() -> new RuntimeException("Refresh token not found"));
 
-        String username = jwtUtil.extractUsername(token);
-        System.out.println("🧹 Deleting refresh token for user: " + username);
-        userRepository.findByUsername(username).ifPresent(user -> {
-                // Delete refresh token from DB
-            refreshTokenRepository.deleteByUser(user);
-            user.setLastAccessToken(null);
-            userRepository.save(user);
-        });
-    } else {
-        throw new RuntimeException("Missing or invalid Authorization header");
+            if (token.getExpiryDate().isBefore(Instant.now())) {
+                refreshTokenRepository.deleteByToken(refreshToken);
+                throw new RuntimeException("Refresh token expired");
+            }
+
+            User user = token.getUser();
+            UserDetails userDetails = new CustomUserDetails(user);
+            String newAccessToken = jwtUtil.generateToken(userDetails);
+            return Map.of("accessToken", newAccessToken);
+        }
+
+    @Transactional
+        public void revokeRefreshToken(String refreshToken) {
+            RefreshToken token = refreshTokenRepository.findByToken(refreshToken)
+                    .orElseThrow(() -> new RuntimeException("Refresh token not found"));
+            refreshTokenRepository.delete(token);
+        }
+    @Transactional
+    public void logout(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header != null && header.startsWith("Bearer ")) {
+            String token = header.substring(7);
+            tokenService.revokeToken(token);
+
+            String username = jwtUtil.extractUsername(token);
+            System.out.println("🧹 Deleting refresh token for user: " + username);
+            userRepository.findByUsername(username).ifPresent(user -> {
+                    // Delete refresh token from DB
+                refreshTokenRepository.deleteByUser(user);
+                user.setLastAccessToken(null);
+                userRepository.save(user);
+            });
+        } else {
+            throw new RuntimeException("Missing or invalid Authorization header");
+        }
     }
-}
 
 
 }

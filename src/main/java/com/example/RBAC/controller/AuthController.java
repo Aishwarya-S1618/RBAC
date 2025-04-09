@@ -51,20 +51,9 @@ public class AuthController {
     }
 
     @PostMapping("/refresh")
-    public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> request) {
+    public ResponseEntity<Map<String, String>> refreshAccessToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-        if (!jwtUtil.validateToken(refreshToken)) {
-            return ResponseEntity.status(401).body(Map.of("error", "Invalid refresh token"));
-        }
-
-        String username = jwtUtil.extractUsername(refreshToken);
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        UserDetails userDetails = new CustomUserDetails(user);
-        String newAccessToken = jwtUtil.generateToken(userDetails);
-
-        return ResponseEntity.ok(Map.of("accessToken", newAccessToken));
+        return ResponseEntity.ok(authService.refreshAccessToken(refreshToken));
     }
 
     @PostMapping("/logout")
