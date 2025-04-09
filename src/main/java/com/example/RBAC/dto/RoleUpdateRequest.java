@@ -6,6 +6,9 @@ import java.util.Set;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+/**
+ * DTO for handling role update requests.
+ */
 @Data
 public class RoleUpdateRequest {
     @NotNull(message = "Roles list cannot be null")

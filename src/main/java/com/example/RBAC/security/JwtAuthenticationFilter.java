@@ -19,20 +19,34 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
-//@Component
+/**
+ * Filter to handle JWT authentication for incoming requests.
+ * Extends OncePerRequestFilter to ensure it runs once per request.
+ */
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
     private final UserDetailsService userDetailsService;
     private final TokenService tokenService;
 
+    /**
+     * Constructor to inject dependencies.
+     * @param jwtUtil Utility class for JWT operations.
+     * @param userDetailsService Service to load user details.
+     * @param tokenService Service to handle token revocation.
+     */
     public JwtAuthenticationFilter(JwtUtil jwtUtil, UserDetailsService userDetailsService, TokenService tokenService) {
         this.tokenService = tokenService;
         this.jwtUtil = jwtUtil;
         this.userDetailsService = userDetailsService;
     }
 
-
+    /**
+     * Filters incoming requests to validate JWT and set authentication.
+     * @param request HTTP request.
+     * @param response HTTP response.
+     * @param filterChain Filter chain to pass the request further.
+     */
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
@@ -49,7 +63,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             username = jwtUtil.extractUsername(token);
         }
         System.out.println("JWT Filter: token = " + token);
-        // 🔒 Token revocation check (insert here)
+        // Token revocation check
         if (token != null && tokenService.isTokenRevoked(token)) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.getWriter().write("Token has been revoked");

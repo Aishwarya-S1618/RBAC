@@ -26,14 +26,14 @@ import java.util.stream.Collectors;
 @RequestMapping("/admin")
 @PreAuthorize("hasRole('ADMIN')")
 @RequiredArgsConstructor
-
-
 public class AdminController {
 
+    // Service and repository dependencies injected via constructor
     private final AdminService adminService;
     private final UserRepository userRepository;
     private final PermissionService permissionService;
 
+    // Retrieve all users in the system
     @GetMapping("/users")
     public ResponseEntity<List<UserDto>> getAllUsers() {
         List<UserDto> userDTOs = userRepository.findAll()
@@ -43,44 +43,54 @@ public class AdminController {
         return ResponseEntity.ok(userDTOs);
     }
 
+    // Retrieve a specific user by their ID
     @GetMapping("/users/{id}")
-        public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
-            UserDto userDTO = adminService.getUserById(id);
+    public ResponseEntity<UserDto> getUserById(@PathVariable Long id) {
+        UserDto userDTO = adminService.getUserById(id);
         return ResponseEntity.ok(userDTO);
     }
 
+    // Delete a user by their ID
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         adminService.deleteUserById(id);
         return ResponseEntity.noContent().build();
     }
 
+    // Update roles assigned to a specific user
     @PutMapping("/users/{userId}/roles")
-    public ResponseEntity<UserDto> updateUserRoles( @PathVariable Long userId,
-        @Valid @RequestBody RoleUpdateRequest request
+    public ResponseEntity<UserDto> updateUserRoles(
+            @PathVariable Long userId,
+            @Valid @RequestBody RoleUpdateRequest request
     ) {
         return ResponseEntity.ok(adminService.updateUserRoles(userId, request));
     }
 
+    // Revoke specific roles from a user
     @DeleteMapping("/users/{userId}/roles")
     public ResponseEntity<UserDto> revokeRolesFromUser(
             @PathVariable Long userId,
             @RequestBody RoleUpdateRequest request
     ) {
+        // Call service to revoke roles and return updated user details
         UserDto updatedUser = adminService.revokeRolesFromUser(userId, request.getRoles());
         return ResponseEntity.ok(updatedUser);
     }
 
+    // Retrieve all roles available in the system
     @GetMapping("/roles")
     public ResponseEntity<List<RoleDto>> getAllRoles() {
+        // Call service to fetch all roles
         return ResponseEntity.ok(adminService.getAllRoles());
     }
 
+    // Add a new permission to the system
     @PostMapping("/permissions")
     public ResponseEntity<Permission> addPermission(@RequestBody PermissionRequest request) {
         return ResponseEntity.ok(permissionService.addPermission(request.getPermission()));
     }
 
+    // Assign permissions to a specific role
     @PostMapping("/roles/{roleId}/permissions")
     public ResponseEntity<String> assignPermissionsToRole(
             @PathVariable Long roleId,
@@ -90,6 +100,7 @@ public class AdminController {
         return ResponseEntity.ok("Permissions assigned successfully");
     }
 
+    // Revoke permissions from a specific role
     @DeleteMapping("/roles/{roleId}/permissions")
     public ResponseEntity<String> revokePermissionsFromRole(
             @PathVariable Long roleId,
@@ -99,16 +110,20 @@ public class AdminController {
         return ResponseEntity.ok("Permissions revoked successfully");
     }
 
+    // Retrieve all permissions assigned to a specific role
     @GetMapping("/roles/{roleId}/permissions")
     public ResponseEntity<Set<String>> getPermissionsForRole(@PathVariable Long roleId) {
         Set<String> permissions = adminService.getPermissionsForRole(roleId);
         return ResponseEntity.ok(permissions);
     }
+
+    // List all permissions available in the system
     @GetMapping("/permissions")
     public ResponseEntity<List<Permission>> listPermissions() {
         return ResponseEntity.ok(permissionService.getAllPermissions());
     }
 
+    // Delete a specific permission by its ID
     @DeleteMapping("/permissions/{id}")
     public ResponseEntity<String> deletePermission(@PathVariable Long id) {
         permissionService.deletePermission(id);

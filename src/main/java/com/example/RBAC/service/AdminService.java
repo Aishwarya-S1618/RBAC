@@ -31,25 +31,31 @@ public class AdminService {
     private final RevokedTokenRepository revokedTokenRepository;
     private final RefreshTokenRepository refreshTokenRepository;
 
-
+    @Transactional(readOnly = true)
     public List<User> getAllUsers() {
+        // Fetch and return all users from the database
         return userRepository.findAll();
     }
+
+    @Transactional(readOnly = true)
     public UserDto getUserById(Long id) {
+        // Fetch a user by ID and map it to a UserDto, or throw an exception if not found
         return userRepository.findById(id)
                 .map(this::mapToDTO)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
+
     @Transactional
     public void deleteUserById(Long userId) {
+        // Delete a user by ID along with their associated tokens
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("User not found"));
 
         // 1. Delete refresh token(s)
         refreshTokenRepository.deleteByUser(user);
 
-        // 2. Delete revoked tokens manually (optional but safe cleanup)
-        revokedTokenRepository.deleteAllByUserId(userId); // You must add this method to repo
+        // 2. Delete revoked tokens manually (safe cleanup)
+        revokedTokenRepository.deleteAllByUserId(userId);
 
         // 3. Finally delete the user
         userRepository.delete(user);
@@ -59,6 +65,7 @@ public class AdminService {
 
     @Transactional
     public UserDto updateUserRoles(Long userId, RoleUpdateRequest request) {
+        // Update the roles of a user based on the provided RoleUpdateRequest
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -72,7 +79,9 @@ public class AdminService {
         return mapToDTO(savedUser);
     }
 
+    @Transactional(readOnly = true)
     public List<RoleDto> getAllRoles() {
+        // Fetch and return all roles as a list of RoleDto objects
         return roleRepository.findAll().stream()
                 .map(role -> {
                     RoleDto dto = new RoleDto();
@@ -82,8 +91,9 @@ public class AdminService {
                 }).collect(Collectors.toList());
     }
 
-
+    @Transactional
     public void createRole(String roleName) {
+        // Create a new role with the given name, or throw an exception if it already exists
         if (roleRepository.findByName(roleName).isPresent()) {
             throw new RuntimeException("Role already exists");
         }
@@ -94,6 +104,7 @@ public class AdminService {
 
     @Transactional
     public UserDto revokeRolesFromUser(Long userId, Set<String> roleNames) {
+        // Revoke specific roles from a user and return the updated user as a UserDto
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -107,14 +118,17 @@ public class AdminService {
     }
 
     private UserDto mapToDTO(User user) {
+        // Map a User entity to a UserDto object
         UserDto dto = new UserDto();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setRoles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()));
         return dto;
     }
+
     @Transactional(readOnly = true)
     public Set<String> getPermissionsForRole(Long roleId) {
+        // Fetch and return all permissions associated with a specific role
         Role role = roleRepository.findById(roleId)
                 .orElseThrow(() -> new ResourceNotFoundException("Role not found"));
 

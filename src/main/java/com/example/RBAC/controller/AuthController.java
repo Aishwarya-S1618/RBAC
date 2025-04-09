@@ -3,16 +3,12 @@ package com.example.RBAC.controller;
 import java.util.Map;
 
 import com.example.RBAC.model.User;
-import com.example.RBAC.repository.UserRepository;
-import com.example.RBAC.security.CustomUserDetails;
-import com.example.RBAC.security.JwtUtil;
 import com.example.RBAC.service.AuthService;
 
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,8 +17,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-    private final JwtUtil jwtUtil;
-    private final UserRepository userRepository;
 
     @GetMapping("/secure-endpoint")
     public ResponseEntity<Map<String, String>> secureEndpoint() {

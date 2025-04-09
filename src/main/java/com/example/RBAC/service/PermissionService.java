@@ -22,7 +22,9 @@ public class PermissionService {
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
 
-
+    public List<Permission> getAllPermissions() {
+        return permissionRepository.findAll();
+    }
 
     public Permission addPermission(String name) {
         if (permissionRepository.existsByName(name)) {
@@ -34,16 +36,13 @@ public class PermissionService {
         return permissionRepository.save(permission);
     }
 
-    public List<Permission> getAllPermissions() {
-        return permissionRepository.findAll();
-    }
-
     public void deletePermission(Long id) {
         if (!permissionRepository.existsById(id)) {
             throw new ResourceNotFoundException("Permission not found");
         }
         permissionRepository.deleteById(id);
     }
+
     @Transactional
     public void assignPermissionsToRole(Long roleId, Set<String> permissionNames) {
         Role role = roleRepository.findById(roleId)

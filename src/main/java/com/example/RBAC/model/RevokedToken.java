@@ -7,7 +7,7 @@ import java.time.Instant;
 
 /**
  * Entity to represent a JWT that has been revoked.
- * This is useful for logout and token blacklisting scenarios.
+ * Useful for logout and token blacklisting scenarios.
  */
 @Entity
 @Table(name = "revoked_tokens", uniqueConstraints = @UniqueConstraint(columnNames = "token"))
@@ -18,32 +18,24 @@ import java.time.Instant;
 @Builder
 public class RevokedToken {
 
-    /**
-     * Primary key for the revoked token entry.
-     */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Long id; // Unique identifier for the revoked token entry
 
-    /**
-     * The JWT token string that has been revoked.
-     * This is expected to be unique.
-     */
     @Column(nullable = false, unique = true, length = 512)
-    private String token;
+    private String token; // The JWT token string that has been revoked, must be unique
 
     @Column(nullable = false)
-    private Long userId;
+    private Long userId; // ID of the user associated with the revoked token
 
-    /**
-     * Timestamp indicating when the token was revoked.
-     * Stored as UTC.
-     */
     @Column(nullable = false)
-    private Instant revokedAt;
+    private Instant revokedAt; // Timestamp indicating when the token was revoked (stored in UTC)
 
     /**
-     * Optional: Convenience factory method for revoking a token now.
+     * Factory method to create a revoked token with the current timestamp.
+     * 
+     * @param token The JWT token string to be revoked.
+     * @return A new instance of RevokedToken.
      */
     public static RevokedToken of(String token) {
         return RevokedToken.builder()
