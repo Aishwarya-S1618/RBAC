@@ -1,6 +1,8 @@
 package com.example.RBAC.controller;
 
 import com.example.RBAC.service.AdminService;
+import com.example.RBAC.service.RoleService;
+import com.example.RBAC.service.PermissionService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -11,9 +13,11 @@ import com.example.RBAC.dto.RoleUpdateRequest;
 import com.example.RBAC.mapper.UserMapper;
 import com.example.RBAC.repository.UserRepository;
 import com.example.RBAC.model.Permission;
-import com.example.RBAC.service.PermissionService;
+
 import com.example.RBAC.dto.PermissionRequest;
 import com.example.RBAC.dto.RolePermissionRequest;
+import com.example.RBAC.dto.RoleRequest;
+import com.example.RBAC.dto.PermissionUpdateRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +34,10 @@ public class AdminController {
 
     // Service and repository dependencies injected via constructor
     private final AdminService adminService;
-    private final UserRepository userRepository;
+    private final RoleService roleService;
     private final PermissionService permissionService;
+
+    private final UserRepository userRepository;
 
     // Retrieve all users in the system
     @GetMapping("/users")
@@ -63,7 +69,7 @@ public class AdminController {
             @PathVariable Long userId,
             @Valid @RequestBody RoleUpdateRequest request
     ) {
-        return ResponseEntity.ok(adminService.updateUserRoles(userId, request));
+        return ResponseEntity.ok(roleService.updateUserRoles(userId, request));
     }
 
     // Revoke specific roles from a user
@@ -73,7 +79,7 @@ public class AdminController {
             @RequestBody RoleUpdateRequest request
     ) {
         // Call service to revoke roles and return updated user details
-        UserDto updatedUser = adminService.revokeRolesFromUser(userId, request.getRoles());
+        UserDto updatedUser = roleService.revokeRolesFromUser(userId, request.getRoles());
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -81,7 +87,14 @@ public class AdminController {
     @GetMapping("/roles")
     public ResponseEntity<List<RoleDto>> getAllRoles() {
         // Call service to fetch all roles
-        return ResponseEntity.ok(adminService.getAllRoles());
+        return ResponseEntity.ok(roleService.getAllRoles());
+    }
+
+    // Add a new role to the system
+    @PostMapping("/roles")
+    public ResponseEntity<RoleDto> addRole(@RequestBody RoleRequest request) {
+        RoleDto roleDto = roleService.createRole(request);
+        return ResponseEntity.ok(roleDto);
     }
 
     // Add a new permission to the system
@@ -113,7 +126,7 @@ public class AdminController {
     // Retrieve all permissions assigned to a specific role
     @GetMapping("/roles/{roleId}/permissions")
     public ResponseEntity<Set<String>> getPermissionsForRole(@PathVariable Long roleId) {
-        Set<String> permissions = adminService.getPermissionsForRole(roleId);
+        Set<String> permissions = permissionService.getPermissionsForRole(roleId);
         return ResponseEntity.ok(permissions);
     }
 
@@ -128,6 +141,15 @@ public class AdminController {
     public ResponseEntity<String> deletePermission(@PathVariable Long id) {
         permissionService.deletePermission(id);
         return ResponseEntity.ok("Permission deleted");
+    }
+
+    // Update permissions assigned to a specific role
+    @PutMapping("/roles/{roleId}/permissions")
+    public ResponseEntity<RoleDto> updateRolePermissions(
+            @PathVariable Long roleId,
+            @Valid @RequestBody PermissionUpdateRequest request
+    ) {
+        return ResponseEntity.ok(permissionService.updateRolePermissions(roleId, request));
     }
 
 }
